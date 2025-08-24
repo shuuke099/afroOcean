@@ -1,0 +1,38 @@
+spring:
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        - id: auth-service
+          uri: lb://auth
+          predicates:
+            - Path=/api/auth/**
+        - id: products-service
+          uri: lb://products
+          predicates:
+            - Path=/api/products/**
+        - id: orders-service
+          uri: lb://orders
+          predicates:
+            - Path=/api/orders/**
+        - id: payments-service
+          uri: lb://payments
+          predicates:
+            - Path=/api/payments/**
+        - id: notification-service
+          uri: lb://notification
+          predicates:
+            - Path=/api/notification/**
+        - id: reviews-service
+          uri: lb://reviews
+          predicates:
+            - Path=/api/reviews/**
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: WARN
+    com.tinka.gateway: INFO

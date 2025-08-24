@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-server
+  labels:
+    app: config-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-server
+  template:
+    metadata:
+      labels:
+        app: config-server
+    spec:
+      containers:
+        - name: config-server
+          image: adan762/config-server:latest
+          ports:
+            - containerPort: 8888
+          command: [ "java" ]
+          args:
+            - "-jar"
+            - "app.jar"
+            - "--spring.profiles.active=native"
+            - "--server.port=8888"
+            - "--spring.cloud.config.server.native.search-locations=file:/app/config-repo"
+            - "--logging.level.org.springframework=DEBUG"
+            - "--logging.level.org.springframework.cloud.config=DEBUG"
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: native
+
+            # Spring Security login
+            - name: SPRING_SECURITY_USER_NAME
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: CONFIG_USER
+            - name: SPRING_SECURITY_USER_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: CONFIG_PASS
+
+            # PostgreSQL settings for auth-dev.yml resolution
+            - name: POSTGRES_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: POSTGRES_HOST
+            - name: POSTGRES_PORT
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: POSTGRES_PORT
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: POSTGRES_DB
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: POSTGRES_PASSWORD
+
+          volumeMounts:
+            - name: config-volume
+              mountPath: /app/config-repo
+      volumes:
+        - name: config-volume
+          hostPath:
+            path: /run/desktop/mnt/host/d/Tinka-eco/tinka-backend/config-repo
+            type: Directory

@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notification
+  labels:
+    app: notification
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notification
+  template:
+    metadata:
+      labels:
+        app: notification
+    spec:
+      containers:
+        - name: notification
+          image: adan762/notification:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8005
+          env:
+            - name: SPRING_CLOUD_CONFIG_NAME
+              value: "application,topics,notification"
+            - name: POSTGRES_HOST
+              value: postgres
+
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              value: "kafka:9092"
+            - name: ENV
+              value: "stg"
+
+            - name: POSTGRES_DB
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: POSTGRES_DB
+
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: POSTGRES_USER
+
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: POSTGRES_PASSWORD
+
+            - name: CONFIG_USER
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: CONFIG_USER
+
+            - name: CONFIG_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: CONFIG_PASS
+
+            - name: SPRING_PROFILES_ACTIVE
+              value: dev
+
+            # --- Spring Cloud Config (URL + credentials) ---
+            - name: SPRING_CLOUD_CONFIG_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: CONFIG_USER
+            - name: SPRING_CLOUD_CONFIG_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: tinka-secret
+                  key: CONFIG_PASS
+
+            - name: SERVER_PORT
+              value: "8005"
+          # (Optional but recommended) health probes
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8005
+            initialDelaySeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8005
+            initialDelaySeconds: 30

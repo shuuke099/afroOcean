@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: orders
+  config:
+    import: optional:configserver:http://config-server:8888
+  cloud:
+    config:
+      username: ${CONFIG_USER}
+      password: ${CONFIG_PASS}
+logging:
+  level:
+    org.springframework.cloud.config: DEBUG

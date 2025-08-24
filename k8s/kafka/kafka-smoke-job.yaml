@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-smoke-test
+spec:
+  backoffLimit: 0   # don’t retry forever
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: kafka-smoke-test
+          image: bitnami/kafka:latest
+          command:
+            - bash
+            - -c
+            - |
+              echo "👉 Creating test topic..."
+              kafka-topics.sh --create --if-not-exists \
+                --topic smoke-test \
+                --bootstrap-server kafka:9092 \
+                --partitions 1 --replication-factor 1
+
+              echo "👉 Producing message..."
+              echo "hello-kafka" | kafka-console-producer.sh \
+                --topic smoke-test \
+                --bootstrap-server kafka:9092 \
+                --producer-property acks=all
+
+              echo "👉 Waiting for message to flush..."
+              sleep 5
+
+              echo "👉 Consuming message..."
+              kafka-console-consumer.sh \
+                --topic smoke-test \
+                --from-beginning \
+                --bootstrap-server kafka:9092 \
+                --timeout-ms 20000 \
+                --max-messages 1 \
+                --group smoke-test-consumer

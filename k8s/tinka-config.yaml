@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tinka-config
+data:
+  ENV: "stg"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"

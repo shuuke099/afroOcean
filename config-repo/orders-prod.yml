@@ -1,0 +1,25 @@
+# orders-prod.yml
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate        # prod-safe: ensures schema matches, no auto-update
+    show-sql: false             # don't log SQL in prod
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  kafka:
+    consumer:
+      group-id: orders-service-prod
+    listener:
+      missing-topics-fatal: true   # fail fast if topics are missing in prod
+
+logging:
+  level:
+    root: INFO
+    com.tinka.orders: INFO
+    org.springframework.web: WARN

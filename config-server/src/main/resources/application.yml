@@ -1,0 +1,20 @@
+server:
+  port: 8888
+
+spring:
+  security:
+    user:
+      name: ${CONFIG_USER}
+      password: ${CONFIG_PASS}
+  cloud:
+    config:
+      server:
+        native:
+          search-locations: file:/app/config-repo
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint.health.probes.enabled: true

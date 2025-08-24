@@ -1,0 +1,25 @@
+# payments-prod.yml
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate            # safer for prod; use Flyway/Liquibase migrations
+    show-sql: false                 # disable SQL logging in prod
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  kafka:
+    consumer:
+      group-id: payments-service-prod   # distinct prod group-id
+    listener:
+      missing-topics-fatal: true        # fail fast in prod if topic missing
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: WARN
+    com.tinka.payments: INFO

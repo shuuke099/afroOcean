@@ -1,0 +1,52 @@
+spring:
+  kafka:
+    # Broker comes from K8s ConfigMap (tinka-config); fallback helps local dev.
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        # Use type headers so consumers can auto-deserialize multiple event classes
+        spring.json.add.type.headers: true
+        acks: all
+        retries: 3
+        linger.ms: 10
+        enable.idempotence: true
+        delivery.timeout.ms: 120000
+        max.in.flight.requests.per.connection: 5
+
+    consumer:
+      # Make sure listeners get POJOs, not byte[]/String
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      properties:
+        # Trust your shared event package(s)
+        spring.json.trusted.packages: com.tinka.common.events.*
+        # With headers ON (above), the next line is implicit; keeping for clarity:
+        spring.json.use.type.headers: true
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      # Align with your Kubernetes Service name (adjust if you actually use eureka-server)
+      defaultZone: http://eureka:8761/eureka
+
+management:
+  endpoints:
+    web:
+      # If you prefer to expose only what you need, replace "*" with: health,info,metrics,prometheus
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: WARN

@@ -1,0 +1,41 @@
+tinka:
+  kafka:
+    # ENV comes from the tinka-config ConfigMap; defaults to 'dev' locally
+    topic-namespace: tinka.${ENV:dev}
+
+    topics:
+      auth:
+        user-created:    ${tinka.kafka.topic-namespace}.user.created
+        user-updated:    ${tinka.kafka.topic-namespace}.user.updated
+        user-deleted:    ${tinka.kafka.topic-namespace}.user.deleted
+        seller-verified: ${tinka.kafka.topic-namespace}.seller.verified
+
+      products:
+        created:         ${tinka.kafka.topic-namespace}.product.created
+        updated:         ${tinka.kafka.topic-namespace}.product.updated
+        deleted:         ${tinka.kafka.topic-namespace}.product.deleted
+        verified:        ${tinka.kafka.topic-namespace}.product.verified
+        out-of-stock:    ${tinka.kafka.topic-namespace}.product.out-of-stock
+
+      orders:
+        placed:          ${tinka.kafka.topic-namespace}.order.placed
+        confirmed:       ${tinka.kafka.topic-namespace}.order.confirmed
+        cancelled:       ${tinka.kafka.topic-namespace}.order.cancelled
+        shipped:         ${tinka.kafka.topic-namespace}.order.shipped
+        delivered:       ${tinka.kafka.topic-namespace}.order.delivered
+        failed:          ${tinka.kafka.topic-namespace}.order.failed
+
+      payments:
+        initiated:       ${tinka.kafka.topic-namespace}.payment.initiated
+        processed:       ${tinka.kafka.topic-namespace}.payment.processed
+        failed:          ${tinka.kafka.topic-namespace}.payment.failed
+        refund-issued:   ${tinka.kafka.topic-namespace}.refund.issued
+
+      reviews:
+        created:         ${tinka.kafka.topic-namespace}.review.created
+
+      notification:
+        requested:       ${tinka.kafka.topic-namespace}.notification.requested
+
+      audit:
+        admin-action-logged: ${tinka.kafka.topic-namespace}.admin.action.logged

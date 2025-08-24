@@ -1,0 +1,25 @@
+# reviews-prod.yml
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate        # prod: verify schema only
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  kafka:
+    consumer:
+      group-id: reviews-service-prod
+    listener:
+      missing-topics-fatal: true   # prod: fail fast if required topics missing
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: WARN
+    com.tinka.reviews: INFO

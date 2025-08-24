@@ -1,0 +1,36 @@
+# notification-dev.yml
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update        # dev only; use validate/migrations in prod
+    show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+  kafka:
+    consumer:
+      group-id: notification-service-dev
+    listener:
+      missing-topics-fatal: false   # dev: don't crash if topics aren't created yet
+
+  mail:
+    host: localhost
+    port: 1025
+    username: dummy
+    password: dummy
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+logging:
+  level:
+    root: DEBUG
+    com.tinka.notification: DEBUG
