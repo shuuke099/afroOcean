@@ -34,3 +34,16 @@ logging:
   level:
     root: DEBUG
     com.tinka.notification: DEBUG
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+  health:
+    mail:
+      enabled: false   # disable mail health check in dev

@@ -1,38 +1,51 @@
 spring:
+  main:
+    web-application-type: reactive   # ensure reactive
   cloud:
     gateway:
       discovery:
         locator:
-          enabled: true
-          lower-case-service-id: true
+          enabled: false
+      globalcors:
+        corsConfigurations:
+          "[/**]":
+            allowedOrigins: "http://localhost:3000"   # your frontend dev server
+            allowedMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+            allowedHeaders: "*"
+            allowCredentials: true
       routes:
-        - id: auth-service
-          uri: lb://auth
+        - id: auth
+          uri: http://auth.default.svc.cluster.local:8001
           predicates:
             - Path=/api/auth/**
-        - id: products-service
-          uri: lb://products
+
+        - id: products
+          uri: http://products.default.svc.cluster.local:8002
           predicates:
             - Path=/api/products/**
-        - id: orders-service
-          uri: lb://orders
+
+        - id: orders
+          uri: http://orders.default.svc.cluster.local:8003
           predicates:
             - Path=/api/orders/**
-        - id: payments-service
-          uri: lb://payments
+
+        - id: payments
+          uri: http://payments.default.svc.cluster.local:8004
           predicates:
             - Path=/api/payments/**
-        - id: notification-service
-          uri: lb://notification
+
+        - id: notification
+          uri: http://notification.default.svc.cluster.local:8005
           predicates:
             - Path=/api/notification/**
-        - id: reviews-service
-          uri: lb://reviews
+
+        - id: reviews
+          uri: http://reviews.default.svc.cluster.local:8006
           predicates:
             - Path=/api/reviews/**
 
-logging:
-  level:
-    root: DEBUG
-    org.springframework.cloud.gateway: DEBUG
-    com.tinka.gateway: DEBUG
+management:
+  endpoints:
+    web:
+      exposure:
+        include: gateway,health,info

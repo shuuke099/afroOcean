@@ -21,6 +21,6 @@ public class AuthEventsConsumer {
         };
     }
 
-    @MarketplaceKafkaListener(topics = "${topics.auth.user-deleted}", groupId = "reviews-auth")
+    @MarketplaceKafkaListener(topics = "${tinka.kafka.topics.auth.user-deleted}", groupId = "reviews-auth")
     public void onUserDeleted(ConsumerRecord<String, UserDeletedEvent> rec) { userDeleted.consume(rec); }
 }

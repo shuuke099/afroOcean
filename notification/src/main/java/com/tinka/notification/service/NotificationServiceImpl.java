@@ -57,7 +57,7 @@ public class NotificationServiceImpl implements NotificationService {
      * Consume a NotificationRequestedEvent from Kafka and process it.
      */
     @KafkaListener(
-            topics = "${topics.notifications.requested}",
+            topics = "${tinka.kafka.topics.notification.requested}",
             groupId = "notification-service"
     )
     public void handleIncomingEvent(NotificationRequestedEvent event) {

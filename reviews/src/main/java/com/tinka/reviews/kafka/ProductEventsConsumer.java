@@ -28,9 +28,9 @@ public class ProductEventsConsumer {
         };
     }
 
-    @MarketplaceKafkaListener(topics = "${topics.products.deleted}", groupId = "reviews-products")
+    @MarketplaceKafkaListener(topics = "${tinka.kafka.topics.products.deleted}", groupId = "reviews-products")
     public void onDeleted(ConsumerRecord<String, ProductDeletedEvent> rec) { deleted.consume(rec); }
 
-    @MarketplaceKafkaListener(topics = "${topics.products.verified}", groupId = "reviews-products")
+    @MarketplaceKafkaListener(topics = "${tinka.kafka.topics.products.verified}", groupId = "reviews-products")
     public void onVerified(ConsumerRecord<String, ProductVerifiedEvent> rec) { verified.consume(rec); }
 }

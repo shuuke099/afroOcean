@@ -19,17 +19,18 @@ spec:
           image: adan762/notification:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 8005
+            - containerPort: 8005   # notification = 8005
           env:
             - name: SPRING_CLOUD_CONFIG_NAME
               value: "application,topics,notification"
+
             - name: POSTGRES_HOST
               value: postgres
-
             - name: POSTGRES_PORT
               value: "5432"
+
             - name: KAFKA_BOOTSTRAP_SERVERS
-              value: "kafka:9092"
+              value: "kafka-0.kafka-headless.default.svc.cluster.local:9092,kafka-1.kafka-headless.default.svc.cluster.local:9092,kafka-2.kafka-headless.default.svc.cluster.local:9092"
             - name: ENV
               value: "stg"
 
@@ -38,13 +39,11 @@ spec:
                 secretKeyRef:
                   name: tinka-secret
                   key: POSTGRES_DB
-
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   name: tinka-secret
                   key: POSTGRES_USER
-
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
@@ -56,7 +55,6 @@ spec:
                 secretKeyRef:
                   name: tinka-secret
                   key: CONFIG_USER
-
             - name: CONFIG_PASS
               valueFrom:
                 secretKeyRef:
@@ -66,7 +64,7 @@ spec:
             - name: SPRING_PROFILES_ACTIVE
               value: dev
 
-            # --- Spring Cloud Config (URL + credentials) ---
+            # --- Spring Cloud Config credentials ---
             - name: SPRING_CLOUD_CONFIG_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -80,7 +78,7 @@ spec:
 
             - name: SERVER_PORT
               value: "8005"
-          # (Optional but recommended) health probes
+
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

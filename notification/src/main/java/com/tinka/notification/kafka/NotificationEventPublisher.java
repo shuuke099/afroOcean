@@ -23,7 +23,7 @@ public class NotificationEventPublisher extends BaseKafkaProducer {
 
     /** Publish when any service requests a notification (email/SMS/push). */
     public CompletableFuture<?> notificationRequested(NotificationRequestedEvent e) {
-        String topic = require(topics.getNotification().getRequested(), "topics.notifications.requested");
+        String topic = require(topics.getNotification().getRequested(), "tinka.kafka.topics.notification.requested");
         return logOnResult(
                 "notificationRequested",
                 e,

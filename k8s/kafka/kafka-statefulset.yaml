@@ -5,7 +5,7 @@ metadata:
 spec:
   serviceName: kafka-headless
   replicas: 3
-  podManagementPolicy: OrderedReady   # kafka-0 must start first
+  podManagementPolicy: Parallel
   selector:
     matchLabels:
       app: kafka
@@ -14,12 +14,23 @@ spec:
       labels:
         app: kafka
     spec:
+      securityContext:
+        fsGroup: 1001
+        fsGroupChangePolicy: "OnRootMismatch"
       containers:
         - name: kafka
-          image: bitnami/kafka:latest   # you may want to pin a specific version
+          image: bitnami/kafka:latest   # keep for now; pin later once stable
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 9092
             - containerPort: 9093
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "512Mi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
           env:
             - name: ALLOW_PLAINTEXT_LISTENER
               value: "yes"
@@ -31,50 +42,55 @@ spec:
               value: "CONTROLLER"
             - name: KAFKA_CFG_LISTENERS
               value: "PLAINTEXT://:9092,CONTROLLER://:9093"
-            - name: KAFKA_CFG_ADVERTISED_LISTENERS
-              value: "PLAINTEXT://$(HOSTNAME).kafka-headless:9092"
-            - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
-              value: "0@kafka-0.kafka-headless:9093,1@kafka-1.kafka-headless:9093,2@kafka-2.kafka-headless:9093"
             - name: KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP
               value: "PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT"
             - name: KAFKA_CFG_INTER_BROKER_LISTENER_NAME
               value: "PLAINTEXT"
-            # Neutral cluster ID var (only kafka-0 will use it)
-            - name: CLUSTER_ID_VALUE
+            - name: KAFKA_CFG_CONTROLLER_QUORUM_VOTERS
+              value: "0@kafka-0.kafka-headless.default.svc.cluster.local:9093,1@kafka-1.kafka-headless.default.svc.cluster.local:9093,2@kafka-2.kafka-headless.default.svc.cluster.local:9093"
+            - name: KAFKA_CLUSTER_ID
               value: "KTNSyJKsSSWYHBJpQ4OebQ"
+            - name: KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE
+              value: "true"
+            - name: KAFKA_HEAP_OPTS
+              value: "-Xms256m -Xmx512m"
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
 
-          # Wrapper ensures node.id is set and only kafka-0 formats
+          command: ["/bin/bash","-ec"]
           args:
-            - bash
-            - -lc
             - |
-              # Extract ordinal from hostname (kafka-0 -> 0, etc.)
+              # numeric node.id from ordinal (kafka-0 -> 0)
               export KAFKA_CFG_NODE_ID="${HOSTNAME##*-}"
-              echo ">> $HOSTNAME using node.id=$KAFKA_CFG_NODE_ID"
+              echo "node.id=$KAFKA_CFG_NODE_ID"
 
-              if [[ "$HOSTNAME" == "kafka-0" ]]; then
-                export KAFKA_CLUSTER_ID="$CLUSTER_ID_VALUE"
-                echo ">> kafka-0 exporting KAFKA_CLUSTER_ID=$KAFKA_CLUSTER_ID (format once)"
-              else
-                echo ">> $HOSTNAME joining cluster (no formatting)"
-              fi
+              # advertised listener with real FQDN
+              export KAFKA_CFG_ADVERTISED_LISTENERS="PLAINTEXT://${HOSTNAME}.kafka-headless.${POD_NAMESPACE}.svc.cluster.local:9092"
+              echo "advertised.listeners=$KAFKA_CFG_ADVERTISED_LISTENERS"
 
-              exec /opt/bitnami/scripts/kafka/run.sh
+              # hand off to Bitnami entrypoint (generates server.properties, etc.)
+              exec /opt/bitnami/scripts/kafka/entrypoint.sh /opt/bitnami/scripts/kafka/run.sh
 
           readinessProbe:
-            exec:
-              command: ["sh","-c","kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            timeoutSeconds: 5
-            failureThreshold: 12
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 20
+
+
+          # For dev you can remove liveness; if you keep it, make it lenient
           livenessProbe:
-            exec:
-              command: ["sh","-c","kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
-            initialDelaySeconds: 30
+            tcpSocket:
+              port: 9092
+            initialDelaySeconds: 90
             periodSeconds: 30
-            timeoutSeconds: 5
-            failureThreshold: 6
+            timeoutSeconds: 10
+            failureThreshold: 10
+
 
           volumeMounts:
             - name: kafka-data

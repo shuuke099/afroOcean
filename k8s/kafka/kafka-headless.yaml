@@ -6,11 +6,13 @@ metadata:
     app: kafka
 spec:
   clusterIP: None
-  publishNotReadyAddresses: true   # ensures kafka-0 is resolvable even before it's Ready
+  publishNotReadyAddresses: true
   selector:
     app: kafka
   ports:
     - name: broker
       port: 9092
+      targetPort: 9092
     - name: controller
       port: 9093
+      targetPort: 9093

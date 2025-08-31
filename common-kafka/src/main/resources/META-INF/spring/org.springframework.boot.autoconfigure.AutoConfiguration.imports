@@ -1,2 +1,2 @@
 com.tinka.common.config.KafkaCommonAutoConfig
-
+com.tinka.common.config.CommonKafkaConfig
