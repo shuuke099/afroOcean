@@ -3,13 +3,19 @@ kind: Job
 metadata:
   name: kafka-smoke-test
 spec:
-  backoffLimit: 0   # don’t retry forever
+  backoffLimit: 0
   template:
     spec:
       restartPolicy: Never
       containers:
         - name: kafka-smoke-test
           image: bitnami/kafka:latest
+          env:
+            - name: KAFKA_BOOTSTRAP_SERVERS
+              valueFrom:
+                configMapKeyRef:
+                  name: tinka-config
+                  key: KAFKA_BOOTSTRAP_SERVERS
           command:
             - bash
             - -c
@@ -17,13 +23,13 @@ spec:
               echo "👉 Creating test topic..."
               kafka-topics.sh --create --if-not-exists \
                 --topic smoke-test \
-                --bootstrap-server kafka:9092 \
+                --bootstrap-server $KAFKA_BOOTSTRAP_SERVERS \
                 --partitions 1 --replication-factor 1
 
               echo "👉 Producing message..."
               echo "hello-kafka" | kafka-console-producer.sh \
                 --topic smoke-test \
-                --bootstrap-server kafka:9092 \
+                --bootstrap-server $KAFKA_BOOTSTRAP_SERVERS \
                 --producer-property acks=all
 
               echo "👉 Waiting for message to flush..."
@@ -33,7 +39,7 @@ spec:
               kafka-console-consumer.sh \
                 --topic smoke-test \
                 --from-beginning \
-                --bootstrap-server kafka:9092 \
+                --bootstrap-server $KAFKA_BOOTSTRAP_SERVERS \
                 --timeout-ms 20000 \
                 --max-messages 1 \
                 --group smoke-test-consumer

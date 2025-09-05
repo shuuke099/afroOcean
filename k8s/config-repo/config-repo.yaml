@@ -1,0 +1,651 @@
+apiVersion: v1
+data:
+  application.yml: |
+    spring:
+      kafka:
+        # Broker comes from K8s ConfigMap (tinka-config); fallback helps local dev.
+        bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+        producer:
+          key-serializer: org.apache.kafka.common.serialization.StringSerializer
+          value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+          properties:
+            # Use type headers so consumers can auto-deserialize multiple event classes
+            spring.json.add.type.headers: true
+            acks: all
+            retries: 3
+            linger.ms: 10
+            enable.idempotence: true
+            delivery.timeout.ms: 120000
+            max.in.flight.requests.per.connection: 5
+
+        consumer:
+          # Make sure listeners get POJOs, not byte[]/String
+          key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+          value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+          auto-offset-reset: earliest
+          properties:
+            # Trust your shared event package(s)
+            spring.json.trusted.packages: com.tinka.common.events.*
+            # With headers ON (above), the next line is implicit; keeping for clarity:
+            spring.json.use.type.headers: true
+
+    eureka:
+      client:
+        register-with-eureka: true
+        fetch-registry: true
+        service-url:
+          # Align with your Kubernetes Service name (adjust if you actually use eureka-server)
+          defaultZone: http://eureka:8761/eureka
+
+    management:
+      endpoints:
+        web:
+          # If you prefer to expose only what you need, replace "*" with: health,info,metrics,prometheus
+          exposure:
+            include: "*"
+      endpoint:
+        health:
+          probes:
+            enabled: true
+
+    logging:
+      level:
+        root: INFO
+        org.springframework.web: WARN
+  auth-dev.yml: |
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: update
+        show-sql: true
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      data:
+        redis:
+          host: ${REDIS_HOST}
+          port: ${REDIS_PORT}
+          timeout: 60000
+
+      kafka:
+        consumer:
+          group-id: auth-service-dev
+        listener:
+          missing-topics-fatal: false
+
+    mail:
+      host: localhost
+      port: 1025
+      username: dummy
+      password: dummy
+
+    logging:
+      level:
+        root: DEBUG
+        com.tinka: DEBUG
+  auth-prod.yml: |
+    # auth-prod.yml
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: validate        # prod: verify schema; use migrations for changes
+        show-sql: false
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      data:
+        redis:
+          host: ${REDIS_HOST}
+          port: ${REDIS_PORT}
+          timeout: 60000
+          # ssl: true               # uncomment if your Redis requires TLS
+
+      kafka:
+        consumer:
+          group-id: auth-service-prod
+        listener:
+          missing-topics-fatal: true  # prod: fail fast if a topic is missing/misnamed
+
+      mail:
+        host: smtp.mailgun.org
+        port: 587
+        username: no-reply@yourdomain.com
+        password: ${MAIL_PASSWORD}
+        properties:
+          mail:
+            smtp:
+              auth: true
+              starttls:
+                enable: true
+
+    logging:
+      level:
+        root: INFO
+        org.springframework.web: WARN
+        com.tinka.auth: INFO
+  auth.yml: |
+    server:
+      port: 8001
+
+    spring:
+      application:
+        name: auth
+    jwt:
+      secret: ${JWT_SECRET}
+      expiration: ${JWT_EXPIRATION}
+  gateway-dev.yml: |
+    spring:
+      main:
+        web-application-type: reactive   # ensure reactive
+      cloud:
+        gateway:
+          discovery:
+            locator:
+              enabled: false
+          globalcors:
+            corsConfigurations:
+              "[/**]":
+                allowedOrigins: "http://localhost:3000"   # your frontend dev server
+                allowedMethods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+                allowedHeaders: "*"
+                allowCredentials: true
+          routes:
+            - id: auth
+              uri: http://auth.default.svc.cluster.local:8001
+              predicates:
+                - Path=/api/auth/**
+
+            - id: products
+              uri: http://products.default.svc.cluster.local:8002
+              predicates:
+                - Path=/api/products/**
+
+            - id: orders
+              uri: http://orders.default.svc.cluster.local:8003
+              predicates:
+                - Path=/api/orders/**
+
+            - id: payments
+              uri: http://payments.default.svc.cluster.local:8004
+              predicates:
+                - Path=/api/payments/**
+
+            - id: notification
+              uri: http://notification.default.svc.cluster.local:8005
+              predicates:
+                - Path=/api/notification/**
+
+            - id: reviews
+              uri: http://reviews.default.svc.cluster.local:8006
+              predicates:
+                - Path=/api/reviews/**
+
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: gateway,health,info
+  gateway-prod.yml: |
+    spring:
+      cloud:
+        gateway:
+          discovery:
+            locator:
+              enabled: true
+              lower-case-service-id: true
+          routes:
+            - id: auth-service
+              uri: lb://auth
+              predicates:
+                - Path=/api/auth/**
+            - id: products-service
+              uri: lb://products
+              predicates:
+                - Path=/api/products/**
+            - id: orders-service
+              uri: lb://orders
+              predicates:
+                - Path=/api/orders/**
+            - id: payments-service
+              uri: lb://payments
+              predicates:
+                - Path=/api/payments/**
+            - id: notification-service
+              uri: lb://notification
+              predicates:
+                - Path=/api/notification/**
+            - id: reviews-service
+              uri: lb://reviews
+              predicates:
+                - Path=/api/reviews/**
+
+    logging:
+      level:
+        root: INFO
+        org.springframework.web: WARN
+        com.tinka.gateway: INFO
+  gateway.yml: |
+    spring:
+      application:
+        name: gateway
+
+    server:
+      port: 8080
+  notification-dev.yml: |
+    # notification-dev.yml
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: update        # dev only; use validate/migrations in prod
+        show-sql: true
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      kafka:
+        consumer:
+          group-id: notification-service-dev
+        listener:
+          missing-topics-fatal: false   # dev: don't crash if topics aren't created yet
+
+      mail:
+        host: localhost
+        port: 1025
+        username: dummy
+        password: dummy
+        properties:
+          mail:
+            smtp:
+              auth: false
+              starttls:
+                enable: false
+
+    logging:
+      level:
+        root: DEBUG
+        com.tinka.notification: DEBUG
+    management:
+      endpoints:
+        web:
+          exposure:
+            include: "*"
+      endpoint:
+        health:
+          probes:
+            enabled: true
+          show-details: always
+      health:
+        mail:
+          enabled: false   # disable mail health check in dev
+  notification-prod.yml: |
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: validate
+        show-sql: false
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      kafka:
+        consumer:
+          group-id: notification-service-prod
+        listener:
+          missing-topics-fatal: true     # prod: fail fast if required topics missing
+
+      mail:
+        host: smtp.mailgun.org
+        port: 587
+        username: no-reply@yourdomain.com
+        password: ${MAIL_PASSWORD}
+        properties:
+          mail:
+            smtp:
+              auth: true
+              starttls:
+                enable: true
+        # For providers that require TLS-only connections, add:
+        # properties.mail.smtp.ssl.enable: true
+
+    logging:
+      level:
+        root: INFO
+        org.springframework.web: WARN
+        com.tinka.notification: INFO
+  notification.yml: |
+    spring:
+      application:
+        name: notification
+
+    server:
+      port: 8005
+  orders-dev.yml: |
+    # orders-dev.yml
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: update      # dev only; use validate/migrations in prod
+        show-sql: true
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      kafka:
+        consumer:
+          group-id: orders-service-dev   # dev-only consumer group
+        listener:
+          missing-topics-fatal: false    # safe for dev bring-up
+
+    logging:
+      level:
+        root: DEBUG
+        com.tinka.orders: DEBUG
+  orders-prod.yml: |
+    # orders-prod.yml
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: validate        # prod-safe: ensures schema matches, no auto-update
+        show-sql: false             # don't log SQL in prod
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      kafka:
+        consumer:
+          group-id: orders-service-prod
+        listener:
+          missing-topics-fatal: true   # fail fast if topics are missing in prod
+
+    logging:
+      level:
+        root: INFO
+        com.tinka.orders: INFO
+        org.springframework.web: WARN
+  orders.yml: |+
+    spring:
+      application:
+        name: orders
+
+    server:
+      port: 8003
+
+  payments-dev.yml: |
+    # payments-dev.yml
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: update          # dev only; use validate/migrations in prod
+        show-sql: true
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      kafka:
+        consumer:
+          group-id: payments-service-dev  # dev-only consumer group
+        listener:
+          missing-topics-fatal: false     # don't crash if topics aren't created yet
+
+    logging:
+      level:
+        root: DEBUG
+        com.tinka.payments: DEBUG
+  payments-prod.yml: |
+    # payments-prod.yml
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: validate            # safer for prod; use Flyway/Liquibase migrations
+        show-sql: false                 # disable SQL logging in prod
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      kafka:
+        consumer:
+          group-id: payments-service-prod   # distinct prod group-id
+        listener:
+          missing-topics-fatal: true        # fail fast in prod if topic missing
+
+    logging:
+      level:
+        root: INFO
+        org.springframework.web: WARN
+        com.tinka.payments: INFO
+  payments.yml: |
+    spring:
+      application:
+        name: payments
+
+    server:
+      port: 8004
+  products-dev.yml: |
+    # products-dev.yml
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: update       # dev only; use validate/migrations in prod
+        show-sql: true
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      data:
+        redis:
+          host: ${REDIS_HOST}
+          port: ${REDIS_PORT}
+          timeout: 60000
+
+      kafka:
+        consumer:
+          group-id: products-service-dev
+        listener:
+          missing-topics-fatal: false    # dev: don't crash if topics not created yet
+
+    feign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 5000
+
+    logging:
+      level:
+        root: DEBUG
+        com.tinka.products: DEBUG
+  products-prod.yml: |
+    # products-prod.yml
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: validate
+        show-sql: false
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      data:
+        redis:
+          host: ${REDIS_HOST}
+          port: ${REDIS_PORT}
+          timeout: 60000
+          # ssl: true   # uncomment if your Redis requires TLS
+
+      kafka:
+        consumer:
+          group-id: products-service-prod
+        listener:
+          missing-topics-fatal: true     # prod: fail fast if required topics missing
+
+    feign:
+      client:
+        config:
+          default:
+            connect-timeout: 5000
+            read-timeout: 5000
+
+    logging:
+      level:
+        root: INFO
+        org.springframework.web: WARN
+        com.tinka.products: INFO
+  products.yml: |+
+    spring:
+      application:
+        name: products
+
+    server:
+      port: 8002
+
+    product:
+      default-page-size: 20
+      max-page-size: 100
+
+
+
+  reviews-dev.yml: |
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: update      # dev only; use validate/migrations in prod
+        show-sql: true
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      kafka:
+        consumer:
+          group-id: reviews-service-dev   # dev-only consumer group
+        listener:
+          missing-topics-fatal: false     # don't crash if topics aren't created yet
+
+    logging:
+      level:
+        root: DEBUG
+        com.tinka.reviews: DEBUG
+  reviews-prod.yml: |
+    # reviews-prod.yml
+    spring:
+      datasource:
+        url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+        username: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        driver-class-name: org.postgresql.Driver
+
+      jpa:
+        hibernate:
+          ddl-auto: validate        # prod: verify schema only
+        show-sql: false
+        database-platform: org.hibernate.dialect.PostgreSQLDialect
+
+      kafka:
+        consumer:
+          group-id: reviews-service-prod
+        listener:
+          missing-topics-fatal: true   # prod: fail fast if required topics missing
+
+    logging:
+      level:
+        root: INFO
+        org.springframework.web: WARN
+        com.tinka.reviews: INFO
+  reviews.yml: |
+    spring:
+      application:
+        name: reviews
+
+    server:
+      port: 8006
+  topics.yml: |
+    tinka:
+      kafka:
+        # ENV comes from the tinka-config ConfigMap; defaults to 'dev' locally
+        topic-namespace: tinka.${ENV:dev}
+
+        topics:
+          auth:
+            user-created:    ${tinka.kafka.topic-namespace}.user.created
+            user-updated:    ${tinka.kafka.topic-namespace}.user.updated
+            user-deleted:    ${tinka.kafka.topic-namespace}.user.deleted
+            seller-verified: ${tinka.kafka.topic-namespace}.seller.verified
+
+          products:
+            created:         ${tinka.kafka.topic-namespace}.product.created
+            updated:         ${tinka.kafka.topic-namespace}.product.updated
+            deleted:         ${tinka.kafka.topic-namespace}.product.deleted
+            verified:        ${tinka.kafka.topic-namespace}.product.verified
+            out-of-stock:    ${tinka.kafka.topic-namespace}.product.out-of-stock
+
+          orders:
+            placed:          ${tinka.kafka.topic-namespace}.order.placed
+            confirmed:       ${tinka.kafka.topic-namespace}.order.confirmed
+            cancelled:       ${tinka.kafka.topic-namespace}.order.cancelled
+            shipped:         ${tinka.kafka.topic-namespace}.order.shipped
+            delivered:       ${tinka.kafka.topic-namespace}.order.delivered
+            failed:          ${tinka.kafka.topic-namespace}.order.failed
+
+          payments:
+            initiated:       ${tinka.kafka.topic-namespace}.payment.initiated
+            processed:       ${tinka.kafka.topic-namespace}.payment.processed
+            failed:          ${tinka.kafka.topic-namespace}.payment.failed
+            refund-issued:   ${tinka.kafka.topic-namespace}.refund.issued
+
+          reviews:
+            created:         ${tinka.kafka.topic-namespace}.review.created
+
+          notification:
+            requested:       ${tinka.kafka.topic-namespace}.notification.requested
+
+          audit:
+            admin-action-logged: ${tinka.kafka.topic-namespace}.admin.action.logged
+kind: ConfigMap
+metadata:
+  name: config-repo

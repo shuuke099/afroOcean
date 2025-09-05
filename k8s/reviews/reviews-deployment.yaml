@@ -85,9 +85,14 @@ spec:
             httpGet:
               path: /actuator/health/readiness
               port: 8006
-            initialDelaySeconds: 10
+            initialDelaySeconds: 20    # give app more boot time
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 5        # retry longer before failing
+
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
               port: 8006
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60    # Spring Boot startup can be slow
+            periodSeconds: 20

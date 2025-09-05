@@ -21,6 +21,6 @@ public class AuthEventsConsumer {
         };
     }
 
-    @MarketplaceKafkaListener(topics = "${topics.auth.seller-verified}", groupId = "products-auth")
+    @MarketplaceKafkaListener(topics = "${tinka.kafka.topics.auth.seller-verified}", groupId = "products-auth")
     public void onSellerVerified(ConsumerRecord<String, SellerVerifiedEvent> rec) { sellerVerified.consume(rec); }
 }

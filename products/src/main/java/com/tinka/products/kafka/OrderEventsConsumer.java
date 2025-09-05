@@ -45,18 +45,18 @@ public class OrderEventsConsumer {
         };
     }
 
-    @MarketplaceKafkaListener(topics = "${topics.orders.placed}", groupId = "products-orders")
+    @MarketplaceKafkaListener(topics = "${tinka.kafka.topics.orders.placed}", groupId = "products-orders")
     public void onPlaced(ConsumerRecord<String, OrderPlacedEvent> rec) { placed.consume(rec); }
 
-    @MarketplaceKafkaListener(topics = "${topics.orders.cancelled}", groupId = "products-orders")
+    @MarketplaceKafkaListener(topics = "${tinka.kafka.topics.orders.cancelled}", groupId = "products-orders")
     public void onCancelled(ConsumerRecord<String, OrderCancelledEvent> rec) { cancelled.consume(rec); }
 
-    @MarketplaceKafkaListener(topics = "${topics.orders.failed}", groupId = "products-orders")
+    @MarketplaceKafkaListener(topics = "${tinka.kafka.topics.orders.failed}", groupId = "products-orders")
     public void onFailed(ConsumerRecord<String, OrderFailedEvent> rec) { failed.consume(rec); }
 
-    @MarketplaceKafkaListener(topics = "${topics.orders.shipped}", groupId = "products-orders")
+    @MarketplaceKafkaListener(topics = "${tinka.kafka.topics.orders.shipped}", groupId = "products-orders")
     public void onShipped(ConsumerRecord<String, OrderShippedEvent> rec) { shipped.consume(rec); }
 
-    @MarketplaceKafkaListener(topics = "${topics.orders.confirmed}", groupId = "products-orders")
+    @MarketplaceKafkaListener(topics = "${tinka.kafka.topics.orders.confirmed}", groupId = "products-orders")
     public void onConfirmed(ConsumerRecord<String, OrderConfirmedEvent> rec) { confirmed.consume(rec); }
 }

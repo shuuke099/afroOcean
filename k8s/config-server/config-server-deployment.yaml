@@ -31,7 +31,8 @@ spec:
           env:
             - name: SPRING_PROFILES_ACTIVE
               value: native
-
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: http://eureka:8761/eureka
             # Spring Security login
             - name: SPRING_SECURITY_USER_NAME
               valueFrom:
@@ -76,6 +77,5 @@ spec:
               mountPath: /app/config-repo
       volumes:
         - name: config-volume
-          hostPath:
-            path: /run/desktop/mnt/host/d/Tinka-eco/tinka-backend/config-repo
-            type: Directory
+          configMap:
+            name: config-repo

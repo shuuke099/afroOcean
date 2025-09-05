@@ -4,4 +4,4 @@ metadata:
   name: tinka-config
 data:
   ENV: "stg"
-  KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+  KAFKA_BOOTSTRAP_SERVERS: "kafka-service:9092"
