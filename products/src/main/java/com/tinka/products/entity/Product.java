@@ -1,11 +1,7 @@
 package com.tinka.products.entity;
 
-
 import jakarta.persistence.*;
 import lombok.*;
-
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -21,63 +17,50 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Core product information
-    private String title;
-
-    @Column(length = 1000)
-    private String description;
-
-    private BigDecimal price;
-
-    private String imageUrl; // Primary image
-
-    @ElementCollection
-    @CollectionTable(name = "product_images", joinColumns = @JoinColumn(name = "product_id"))
-    @Column(name = "image_url")
-    private List<String> images; // Additional images
-
-    private String category;
-    private String brand;
-
-    // SEO and filtering
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String slug;
 
-    private String country;
-    private String currency;
+    private String sellerId;
+    private String status; // draft, pending, approved, rejected
 
-    // Ratings (cached from review microservice)
-    private Double averageRating;
-    private Integer totalReviews;
+    // 🔗 Relations (unchanged)
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductTranslation> translations;
 
-    private Integer quantity;
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductPrice price;
 
-    private boolean featured;
-    private boolean verified;
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductInventory inventory;
 
-    @Enumerated(EnumType.STRING)
-    private ProductStatus status;
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductMedia> media;
 
-    private String sellerId; // UUID or ID from seller microservice
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductMarketing marketing;
 
-    private LocalDateTime publishedAt;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductAnalytics analytics;
 
-    @PrePersist
-    protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
-        if (this.status == ProductStatus.PUBLISHED) {
-            this.publishedAt = LocalDateTime.now();
-        }
-    }
+    // ✅ Embedded review summary
+    @Embedded
+    private ProductReviewSummary reviewSummary;
 
-    @PreUpdate
-    protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
-        if (this.status == ProductStatus.PUBLISHED && this.publishedAt == null) {
-            this.publishedAt = LocalDateTime.now();
-        }
-    }
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductWorkflow workflow;
+
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductAudit audit;
+
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductShipping shipping;
+
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductLocation location;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProductAttribute> attributes;
+
+    @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    private ProductSEO seo;
 }

@@ -21,7 +21,7 @@ public class ReviewEventsConsumer {
         };
     }
 
-    @MarketplaceKafkaListener(topics = "${topics.reviews.created}", groupId = "products-reviews")
+    @MarketplaceKafkaListener(topics = "${tinka.kafka.topics.reviews.created}", groupId = "products-reviews")
     public void onReviewCreated(ConsumerRecord<String, ReviewCreatedEvent> rec) { reviewCreated.consume(rec); }
 
 }
