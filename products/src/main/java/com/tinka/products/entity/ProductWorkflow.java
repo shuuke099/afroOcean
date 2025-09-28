@@ -17,12 +17,27 @@ public class ProductWorkflow {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String status; // draft, pending, approved, rejected
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProductStatus status; // DRAFT, PENDING, APPROVED, REJECTED
+
+    @Column(nullable = false)
     private String moderatedBy;
+
+    @Column(length = 1000)
     private String reason;
+
+    @Column(nullable = false)
     private LocalDateTime timestamp;
 
     @OneToOne
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
+
+    @PrePersist
+    protected void onCreate() {
+        if (this.timestamp == null) {
+            this.timestamp = LocalDateTime.now();
+        }
+    }
 }

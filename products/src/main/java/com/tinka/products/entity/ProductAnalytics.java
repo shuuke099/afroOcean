@@ -4,7 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "product_analytics")
+@Table(
+        name = "product_analytics",
+        indexes = {
+                @Index(name = "idx_views", columnList = "views"),
+                @Index(name = "idx_sales", columnList = "sales")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,15 +22,28 @@ public class ProductAnalytics {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Integer views;
-    private Integer inquiries;
-    private Integer sales;
-    private Integer flags;
-    private Integer ratings;
-    private Integer wishlistCount;
-    private Integer cartAdds;
+    @Column(nullable = false)
+    private Integer views = 0;
+
+    @Column(nullable = false)
+    private Integer inquiries = 0;
+
+    @Column(nullable = false)
+    private Integer sales = 0;
+
+    @Column(nullable = false)
+    private Integer flags = 0;
+
+    @Column(nullable = false)
+    private Integer ratings = 0;
+
+    @Column(nullable = false)
+    private Integer wishlistCount = 0;
+
+    @Column(nullable = false)
+    private Integer cartAdds = 0;
 
     @OneToOne
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 }

@@ -17,14 +17,23 @@ public class ProductMarketing {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double discount;
+    // Discount as percentage (0–100)
+    @Column(nullable = false)
+    private Double discount = 0.0;
+
+    @Column(length = 255)
     private String promotion;
-    private Boolean clearance;
-    private Boolean featured;
+
+    @Column(nullable = false)
+    private Boolean clearance = false;
+
+    @Column(nullable = false)
+    private Boolean featured = false;
+
     private LocalDateTime startDate;
     private LocalDateTime endDate;
 
     @OneToOne
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 }

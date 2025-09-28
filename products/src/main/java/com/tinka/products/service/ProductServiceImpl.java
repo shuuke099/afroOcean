@@ -6,16 +6,14 @@ import com.tinka.products.entity.Product;
 import com.tinka.products.entity.ProductStatus;
 import com.tinka.products.exception.ResourceNotFoundException;
 import com.tinka.products.kafka.ProductEventPublisher;
+import com.tinka.products.kafka.ProductEventMapper;
 import com.tinka.products.mapper.ProductMapper;
 import com.tinka.products.repository.ProductRepository;
 import com.tinka.products.util.MapperUtil;
-import com.tinka.common.events.products.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.time.ZoneOffset;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -29,36 +27,24 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse createProduct(ProductRequest request, String sellerId) {
         Product product = productMapper.toEntity(request);
         product.setSellerId(sellerId);
-        product.setSlug(MapperUtil.toSlug(product.getTitle()));
+        product.setSlug(MapperUtil.toSlug(sellerId + "-" + System.currentTimeMillis()));
         product.setStatus(ProductStatus.PENDING);
-        product.setVerified(false);
+
         Product saved = productRepository.save(product);
-
-        // --- Publish ProductCreated event
-        eventPublisher.productCreated(ProductCreatedEvent.builder()
-                .productId(String.valueOf(saved.getId()))
-                .name(saved.getTitle())
-                .sellerId(saved.getSellerId())
-                .status(saved.getStatus().name())
-                .createdAt(saved.getCreatedAt() != null ? saved.getCreatedAt().toInstant(ZoneOffset.UTC) : null)
-
-                .build()
-        );
+        eventPublisher.productCreated(ProductEventMapper.toCreatedEvent(saved, sellerId));
 
         return productMapper.toResponse(saved);
     }
 
     @Override
     public ProductResponse getProductById(Long id) {
-        Product product = findProductOrThrow(id);
-        return productMapper.toResponse(product);
+        return productMapper.toResponse(findProductOrThrow(id));
     }
 
     @Override
-    public List<ProductResponse> getAllProducts() {
-        return productRepository.findAll().stream()
-                .map(productMapper::toResponse)
-                .collect(Collectors.toList());
+    public Page<ProductResponse> getAllProducts(Pageable pageable) {
+        return productRepository.findAll(pageable)
+                .map(productMapper::toResponse);
     }
 
     @Override
@@ -69,30 +55,20 @@ public class ProductServiceImpl implements ProductService {
             throw new SecurityException("You are not allowed to update this product.");
         }
 
-        product.setTitle(request.getTitle());
-        product.setDescription(request.getDescription());
-        product.setPrice(request.getPrice());
-        product.setImageUrl(request.getImageUrl());
-        product.setImages(request.getImages());
-        product.setCategory(request.getCategory());
-        product.setBrand(request.getBrand());
-        product.setCurrency(request.getCurrency());
-        product.setCountry(request.getCountry());
-        product.setQuantity(request.getQuantity());
-        product.setFeatured(request.isFeatured());
-        product.setSlug(MapperUtil.toSlug(request.getTitle()));
-
+        productMapper.updateEntity(product, request);
         Product updated = productRepository.save(product);
 
-        // --- Publish ProductUpdated event
-        eventPublisher.productUpdated(ProductUpdatedEvent.builder()
-                .productId(String.valueOf(updated.getId()))
-                .name(updated.getTitle())
-                .sellerId(updated.getSellerId())
-                .status(updated.getStatus().name())
-                .updatedAt(updated.getUpdatedAt() != null ? updated.getUpdatedAt().toInstant(ZoneOffset.UTC) : null)
-                .build()
-        );
+        eventPublisher.productUpdated(ProductEventMapper.toUpdatedEvent(updated, sellerId));
+
+        if (updated.getStatus() == ProductStatus.PUBLISHED) {
+            eventPublisher.productVerified(ProductEventMapper.toVerifiedEvent(updated, sellerId));
+        }
+
+        if (updated.getInventory() != null
+                && updated.getInventory().getQuantity() != null
+                && updated.getInventory().getQuantity() == 0) {
+            eventPublisher.productOutOfStock(ProductEventMapper.toOutOfStockEvent(updated, sellerId));
+        }
 
         return productMapper.toResponse(updated);
     }
@@ -105,66 +81,52 @@ public class ProductServiceImpl implements ProductService {
             throw new SecurityException("You are not allowed to delete this product.");
         }
 
-        productRepository.deleteById(id);
-
-        // --- Publish ProductDeleted event
-        eventPublisher.productDeleted(ProductDeletedEvent.builder()
-                .productId(String.valueOf(product.getId()))
-                .sellerId(product.getSellerId())
-                .build()
-        );
+        productRepository.delete(product);
+        eventPublisher.productDeleted(ProductEventMapper.toDeletedEvent(product, sellerId));
     }
 
     @Override
-    public List<ProductResponse> getProductsBySeller(String sellerId) {
-        return productRepository.findBySellerId(sellerId).stream()
-                .map(productMapper::toResponse)
-                .collect(Collectors.toList());
+    public Page<ProductResponse> getProductsBySeller(String sellerId, Pageable pageable) {
+        return productRepository.findBySellerId(sellerId, pageable)
+                .map(productMapper::toResponse);
     }
 
     @Override
-    public List<ProductResponse> searchProducts(String keyword) {
-        return productRepository.findByTitleContainingIgnoreCase(keyword).stream()
-                .map(productMapper::toResponse)
-                .collect(Collectors.toList());
+    public Page<ProductResponse> searchProducts(String keyword, Pageable pageable) {
+        return productRepository.searchByKeyword(keyword, pageable)
+                .map(productMapper::toResponse);
     }
 
     @Override
-    public List<ProductResponse> getProductsByCategory(String category) {
-        return productRepository.findByCategoryIgnoreCaseAndStatus(category, ProductStatus.PUBLISHED).stream()
-                .map(productMapper::toResponse)
-                .collect(Collectors.toList());
+    public Page<ProductResponse> getProductsByCategory(String category, Pageable pageable) {
+        return productRepository.findByCategory(category, ProductStatus.PUBLISHED, pageable)
+                .map(productMapper::toResponse);
     }
 
     @Override
-    public List<ProductResponse> getProductsByCountry(String country) {
-        return productRepository.findByCountryIgnoreCase(country).stream()
-                .map(productMapper::toResponse)
-                .collect(Collectors.toList());
+    public Page<ProductResponse> getProductsByCountry(String country, Pageable pageable) {
+        return productRepository.findByLocationCountry(country, pageable)
+                .map(productMapper::toResponse);
     }
 
     @Override
-    public List<ProductResponse> getProductsByStatus(ProductStatus status) {
-        return productRepository.findByStatus(status).stream()
-                .map(productMapper::toResponse)
-                .collect(Collectors.toList());
+    public Page<ProductResponse> getProductsByStatus(ProductStatus status, Pageable pageable) {
+        return productRepository.findByStatus(status, pageable)
+                .map(productMapper::toResponse);
     }
 
     @Override
-    public List<ProductResponse> getFeaturedProducts() {
-        return productRepository.findByFeaturedTrueAndStatus(ProductStatus.PUBLISHED).stream()
-                .map(productMapper::toResponse)
-                .collect(Collectors.toList());
+    public Page<ProductResponse> getFeaturedProducts(Pageable pageable) {
+        return productRepository.findByMarketing_FeaturedTrueAndStatus(ProductStatus.PUBLISHED, pageable)
+                .map(productMapper::toResponse);
     }
 
     @Override
-    public List<ProductResponse> getVerifiedProducts() {
-        return productRepository.findByVerifiedTrueAndStatus(ProductStatus.PUBLISHED).stream()
-                .map(productMapper::toResponse)
-                .collect(Collectors.toList());
+    public Page<ProductResponse> getVerifiedProducts(Pageable pageable) {
+        return productRepository.findByStatus(ProductStatus.PUBLISHED, pageable)
+                .map(productMapper::toResponse);
     }
 
-    // 🔐 Internal helper to fetch and validate product existence
     private Product findProductOrThrow(Long id) {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Product not found with id: " + id));

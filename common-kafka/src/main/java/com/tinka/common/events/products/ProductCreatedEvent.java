@@ -17,14 +17,13 @@ public class ProductCreatedEvent extends BaseMarketplaceEvent {
     private String productId;
     private String sellerId;
     private String name;
-    private String status;
     private String category;
     private BigDecimal price;
-    private boolean verified;
+    private String status;
     private Instant createdAt;
 
     @Override
     public String getSource() {
-        return "product-service"; // Update if your service name differs
+        return "product-service";
     }
 }

@@ -6,8 +6,6 @@ public enum ProductStatus {
     PENDING,
     PUBLISHED,
     REJECTED,
-    OUT_OF_STOCK,
-    ARCHIVED,
     DELETED
 }
 

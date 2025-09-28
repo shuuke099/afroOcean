@@ -16,11 +16,17 @@ public class ProductInventory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Integer quantity;
+    @Column(nullable = false)
+    private Integer quantity = 0;
+
+    @Column(unique = true, nullable = false)
     private String sku;
-    private String stockStatus; // in_stock, low, out_of_stock
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private StockStatus stockStatus;
 
     @OneToOne
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 }

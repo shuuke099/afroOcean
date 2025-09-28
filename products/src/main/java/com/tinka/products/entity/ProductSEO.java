@@ -16,15 +16,19 @@ public class ProductSEO {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(length = 60)
     private String seoTitle;
+
+    @Column(length = 160)
     private String seoDescription;
 
     @Column(length = 2000)
-    private String searchKeywords; // comma-separated
+    private String searchKeywords; // comma-separated or JSON
 
-    private String tags; // optional CSV tags
+    @Column(length = 1000)
+    private String tags; // comma-separated
 
     @OneToOne
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 }

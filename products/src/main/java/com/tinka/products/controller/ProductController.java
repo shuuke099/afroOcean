@@ -6,12 +6,14 @@ import com.tinka.products.entity.ProductStatus;
 import com.tinka.products.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.security.Principal;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/products")
@@ -23,9 +25,16 @@ public class ProductController {
     // 🔹 Create Product (SELLER ONLY)
     @PostMapping
     @PreAuthorize("hasRole('SELLER')")
-    public ResponseEntity<ProductResponse> createProduct(@Valid @RequestBody ProductRequest request, Principal principal) {
+    public ResponseEntity<ProductResponse> createProduct(
+            @Valid @RequestBody ProductRequest request,
+            Principal principal
+    ) {
         String sellerId = principal.getName(); // Extracted from JWT
-        return ResponseEntity.ok(productService.createProduct(request, sellerId));
+        ProductResponse created = productService.createProduct(request, sellerId);
+
+        // Return 201 Created + Location header
+        return ResponseEntity.created(URI.create("/api/products/" + created.getId()))
+                .body(created);
     }
 
     // 🔹 Get Product by ID (Public)
@@ -34,10 +43,13 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductById(id));
     }
 
-    // 🔹 Get All Products (Public)
+    // 🔹 Get All Products (Public, paginated)
     @GetMapping
-    public ResponseEntity<List<ProductResponse>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    public ResponseEntity<Page<ProductResponse>> getAllProducts(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(productService.getAllProducts(PageRequest.of(page, size)));
     }
 
     // 🔹 Update Product (SELLER ONLY)
@@ -61,45 +73,71 @@ public class ProductController {
         return ResponseEntity.noContent().build();
     }
 
-    // 🔹 Get Products by Seller (Public or optional seller portal)
+    // 🔹 Get Products by Seller (Paginated)
     @GetMapping("/seller/{sellerId}")
-    public ResponseEntity<List<ProductResponse>> getProductsBySeller(@PathVariable String sellerId) {
-        return ResponseEntity.ok(productService.getProductsBySeller(sellerId));
+    public ResponseEntity<Page<ProductResponse>> getProductsBySeller(
+            @PathVariable String sellerId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(productService.getProductsBySeller(sellerId, PageRequest.of(page, size)));
     }
 
     // 🔹 Search by Title
     @GetMapping("/search")
-    public ResponseEntity<List<ProductResponse>> searchProducts(@RequestParam String keyword) {
-        return ResponseEntity.ok(productService.searchProducts(keyword));
+    public ResponseEntity<Page<ProductResponse>> searchProducts(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(productService.searchProducts(keyword, PageRequest.of(page, size)));
     }
 
     // 🔹 Filter by Category
     @GetMapping("/category/{category}")
-    public ResponseEntity<List<ProductResponse>> getByCategory(@PathVariable String category) {
-        return ResponseEntity.ok(productService.getProductsByCategory(category));
+    public ResponseEntity<Page<ProductResponse>> getByCategory(
+            @PathVariable String category,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(productService.getProductsByCategory(category, PageRequest.of(page, size)));
     }
 
     // 🔹 Filter by Country
     @GetMapping("/country/{country}")
-    public ResponseEntity<List<ProductResponse>> getByCountry(@PathVariable String country) {
-        return ResponseEntity.ok(productService.getProductsByCountry(country));
+    public ResponseEntity<Page<ProductResponse>> getByCountry(
+            @PathVariable String country,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(productService.getProductsByCountry(country, PageRequest.of(page, size)));
     }
 
     // 🔹 Filter by Status
     @GetMapping("/status/{status}")
-    public ResponseEntity<List<ProductResponse>> getByStatus(@PathVariable ProductStatus status) {
-        return ResponseEntity.ok(productService.getProductsByStatus(status));
+    public ResponseEntity<Page<ProductResponse>> getByStatus(
+            @PathVariable ProductStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(productService.getProductsByStatus(status, PageRequest.of(page, size)));
     }
 
     // 🔹 Featured Products
     @GetMapping("/featured")
-    public ResponseEntity<List<ProductResponse>> getFeatured() {
-        return ResponseEntity.ok(productService.getFeaturedProducts());
+    public ResponseEntity<Page<ProductResponse>> getFeatured(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(productService.getFeaturedProducts(PageRequest.of(page, size)));
     }
 
     // 🔹 Verified Products
     @GetMapping("/verified")
-    public ResponseEntity<List<ProductResponse>> getVerified() {
-        return ResponseEntity.ok(productService.getVerifiedProducts());
+    public ResponseEntity<Page<ProductResponse>> getVerified(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(productService.getVerifiedProducts(PageRequest.of(page, size)));
     }
 }

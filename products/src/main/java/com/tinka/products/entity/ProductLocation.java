@@ -4,7 +4,13 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "product_location")
+@Table(
+        name = "product_location",
+        indexes = {
+                @Index(name = "idx_country", columnList = "country"),
+                @Index(name = "idx_city", columnList = "city")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,11 +22,19 @@ public class ProductLocation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private String country;
+
+    @Column(nullable = false)
     private String city;
-    private String coordinates; // store as "lat,long"
+
+    @Column(precision = 9, scale = 6)
+    private Double latitude;
+
+    @Column(precision = 9, scale = 6)
+    private Double longitude;
 
     @OneToOne
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 }

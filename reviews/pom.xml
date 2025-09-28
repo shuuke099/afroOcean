@@ -57,6 +57,10 @@
 			<artifactId>common-kafka</artifactId>
 			<version>1.0.0</version>
 		</dependency>
+		<dependency>
+			<groupId>software.amazon.awssdk</groupId>
+			<artifactId>s3</artifactId>
+		</dependency>
 
 		<!-- Database -->
 		<dependency>

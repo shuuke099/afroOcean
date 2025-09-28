@@ -20,10 +20,14 @@ public class Product {
     @Column(unique = true, nullable = false)
     private String slug;
 
+    @Column(nullable = false)
     private String sellerId;
-    private String status; // draft, pending, approved, rejected
 
-    // 🔗 Relations (unchanged)
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProductStatus status; // DRAFT, PENDING, PUBLISHED, REJECTED, DELETED
+
+    // 🔗 Relations
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductTranslation> translations;
 
@@ -42,7 +46,6 @@ public class Product {
     @OneToOne(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private ProductAnalytics analytics;
 
-    // ✅ Embedded review summary
     @Embedded
     private ProductReviewSummary reviewSummary;
 

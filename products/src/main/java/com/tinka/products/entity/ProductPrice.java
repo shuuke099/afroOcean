@@ -2,9 +2,15 @@ package com.tinka.products.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import java.math.BigDecimal;
 
 @Entity
-@Table(name = "product_prices")
+@Table(
+        name = "product_prices",
+        indexes = {
+                @Index(name = "idx_amount", columnList = "amount")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,11 +22,16 @@ public class ProductPrice {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Double amount;
-    private String currency;
-    private Double originalPrice;
+    @Column(nullable = false, precision = 19, scale = 4)
+    private BigDecimal amount;
+
+    @Column(nullable = false, length = 3)
+    private String currency; // ISO 4217 (e.g., USD, EUR)
+
+    @Column(precision = 19, scale = 4)
+    private BigDecimal originalPrice;
 
     @OneToOne
-    @JoinColumn(name = "product_id")
+    @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 }

@@ -1,10 +1,8 @@
 package com.tinka.products.dto;
 
-import jakarta.validation.constraints.*;
 import lombok.*;
-
-import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
@@ -12,39 +10,82 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class ProductRequest {
+    private Map<String, TranslationDto> translations;  // { "en": { name, category, description }, ... }
+    private PriceDto price;
+    private InventoryDto inventory;
+    private List<MediaDto> media;
+    private MarketingDto marketing;
+    private SeoDto seo;
+    private LocationDto location;
+    private List<AttributeDto> attributes;
+    private ShippingDto shipping;
+}
 
-    @NotBlank(message = "Title is required")
-    private String title;
-
-    @NotBlank(message = "Description is required")
-    @Size(max = 1000, message = "Description must not exceed 1000 characters")
-    private String description;
-
-    @NotNull(message = "Price is required")
-    @DecimalMin(value = "0.0", inclusive = false, message = "Price must be greater than 0")
-    private BigDecimal price;
-
-    @NotBlank(message = "Primary image URL is required")
-    private String imageUrl;
-
-    private List<@NotBlank(message = "Image URL cannot be blank") String> images;
-
-    @NotBlank(message = "Category is required")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+class TranslationDto {
     private String category;
+    private String name;
+    private String description;
+}
 
-    @NotBlank(message = "Brand is required")
-    private String brand;
-
-    @Min(value = 0, message = "Quantity must be zero or more")
-    private Integer quantity;
-
-    private boolean featured;
-
-    // Don't allow setting status directly from frontend — default to DRAFT or PENDING in service
-
-    @NotBlank(message = "Country is required")
-    private String country;
-
-    @NotBlank(message = "Currency is required")
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+class PriceDto {
+    private Double amount;
     private String currency;
+    private Double originalPrice;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+class InventoryDto {
+    private Integer quantity;
+    private String sku;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+class MediaDto {
+    private String url;
+    private String type;
+    private Boolean primary;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+class MarketingDto {
+    private Double discount;
+    private String promotion;
+    private Boolean clearance;
+    private Boolean featured;
+    private String startDate;
+    private String endDate;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+class SeoDto {
+    private String seoTitle;
+    private String seoDescription;
+    private List<String> searchKeywords;
+    private List<String> tags;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+class LocationDto {
+    private String country;
+    private String city;
+    private Double lat;
+    private Double lon;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+class AttributeDto {
+    private String key;
+    private String value;
+}
+
+@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
+class ShippingDto {
+    private Double weight;
+    private Double length;
+    private Double width;
+    private Double height;
+    private String deliveryEstimates;
+    private String returnPolicy;
 }
